@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cassert>
 
+#include "baggage.h"
 #include "config_manager.h"
 #include "datadog_agent.h"
 #include "extracted_data.h"
@@ -170,6 +171,9 @@ Expected<Span> Tracer::extract_span(const DictReader& reader,
         break;
       case PropagationStyle::W3C:
         extract = &extract_w3c;
+        break;
+      case PropagationStyle::BAGGAGE:
+        extract = &extract_baggage;
         break;
       default:
         assert(style == PropagationStyle::NONE);

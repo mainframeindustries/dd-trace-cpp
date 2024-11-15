@@ -29,6 +29,12 @@ class RequestHandler final {
   void on_stats_flush(const httplib::Request& /* req */,
                       httplib::Response& res);
   void on_span_error(const httplib::Request& req, httplib::Response& res);
+  void on_set_baggage(const httplib::Request& req, httplib::Response& res);
+  void on_remove_baggage(const httplib::Request& req, httplib::Response& res);
+  void on_remove_all_baggage(const httplib::Request& req,
+                             httplib::Response& res);
+  void on_get_baggage(const httplib::Request& req, httplib::Response& res);
+  void on_get_all_baggage(const httplib::Request& req, httplib::Response& res);
 
  private:
   datadog::tracing::Tracer tracer_;

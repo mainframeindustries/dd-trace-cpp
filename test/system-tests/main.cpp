@@ -117,6 +117,27 @@ int main(int argc, char* argv[]) {
              handler.on_stats_flush(req, res);
            });
 
+  svr.Post("/trace/span/set_baggage",
+           [&handler](const httplib::Request& req, httplib::Response& res) {
+             handler.on_set_baggage(req, res);
+           });
+  svr.Post("/trace/span/remove_baggage",
+           [&handler](const httplib::Request& req, httplib::Response& res) {
+             handler.on_remove_baggage(req, res);
+           });
+  svr.Post("/trace/span/remove_all_baggage",
+           [&handler](const httplib::Request& req, httplib::Response& res) {
+             handler.on_remove_all_baggage(req, res);
+           });
+  svr.Get("/trace/span/get_baggage",
+          [&handler](const httplib::Request& req, httplib::Response& res) {
+            handler.on_get_baggage(req, res);
+          });
+  svr.Get("/trace/span/get_all_baggage",
+          [&handler](const httplib::Request& req, httplib::Response& res) {
+            handler.on_get_all_baggage(req, res);
+          });
+
   // Not implemented
   svr.Post("/trace/span/set_metric",
            [&handler](const httplib::Request& req, httplib::Response& res) {

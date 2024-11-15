@@ -288,4 +288,150 @@ void RequestHandler::on_span_error(const httplib::Request& req,
   res.status = 200;
 }
 
+void RequestHandler::on_set_baggage(const httplib::Request& req,
+                                    httplib::Response& res) {
+  const auto request_json = nlohmann::json::parse(req.body);
+
+  auto span_id = utils::get_if_exists<uint64_t>(request_json, "span_id");
+  if (!span_id) {
+    VALIDATION_ERROR(res, "on_set_baggage: missing `span_id` field.");
+  }
+
+  auto span_it = active_spans_.find(*span_id);
+  if (span_it == active_spans_.cend()) {
+    const auto msg =
+        "on_set_baggage: span not found for id " + std::to_string(*span_id);
+    VALIDATION_ERROR(res, msg);
+  }
+
+  auto& span = span_it->second;
+
+  for (const auto& field : {"key", "value"}) {
+    if (request_json.contains(field)) {
+      VALIDATION_ERROR(res, std::string("on_set_baggage: missing mandatory `") +
+                                field + "` field");
+    }
+  }
+
+  span.baggage.set(request_json["key"], request_json["value"]);
+  res.status = 200;
+}
+
+void RequestHandler::on_remove_baggage(const httplib::Request& req,
+                                       httplib::Response& res) {
+  const auto request_json = nlohmann::json::parse(req.body);
+
+  auto span_id = utils::get_if_exists<uint64_t>(request_json, "span_id");
+  if (!span_id) {
+    VALIDATION_ERROR(res, "on_remove_baggage: missing `span_id` field.");
+  }
+
+  auto key = utils::get_if_exists<std::string_view>(request_json, "key");
+  if (!key) {
+    VALIDATION_ERROR(res, "on_remove_baggage: missing `key` field.");
+  }
+
+  auto span_it = active_spans_.find(*span_id);
+  if (span_it == active_spans_.cend()) {
+    const auto msg =
+        "on_remove_baggage: span not found for id " + std::to_string(*span_id);
+    VALIDATION_ERROR(res, msg);
+  }
+
+  auto& span = span_it->second;
+  span.baggage.remove(key);
+  res.status = 200;
+}
+
+void RequestHandler::on_remove_all_baggage(const httplib::Request& req,
+                                           httplib::Response& res) {
+  const auto request_json = nlohmann::json::parse(req.body);
+
+  auto span_id = utils::get_if_exists<uint64_t>(request_json, "span_id");
+  if (!span_id) {
+    VALIDATION_ERROR(res, "on_remove_all_baggage: missing `span_id` field.");
+  }
+
+  auto span_it = active_spans_.find(*span_id);
+  if (span_it == active_spans_.cend()) {
+    const auto msg = "on_remove_all_baggage: span not found for id " +
+                     std::to_string(*span_id);
+    VALIDATION_ERROR(res, msg);
+  }
+
+  auto& span = span_it->second;
+  span.baggage.clear();
+  res.status = 200;
+}
+
+void RequestHandler::on_get_baggage(const httplib::Request& req,
+                                    httplib::Response& res) {
+  const auto request_json = nlohmann::json::parse(req.body);
+
+  auto span_id = utils::get_if_exists<uint64_t>(request_json, "span_id");
+  if (!span_id) {
+    VALIDATION_ERROR(res, "on_get_baggage: missing `span_id` field.");
+  }
+
+  auto key = utils::get_if_exists<std::string_view>(request_json, "key");
+  if (!key) {
+    VALIDATION_ERROR(res, "on_get_baggage: missing `key` field.");
+  }
+
+  auto span_it = active_spans_.find(*span_id);
+  if (span_it == active_spans_.cend()) {
+    const auto msg =
+        "on_get_baggage: span not found for id " + std::to_string(*span_id);
+    VALIDATION_ERROR(res, msg);
+  }
+
+  auto& span = span_it->second;
+
+  // clang-format off
+    nlohmann::json response_json{
+      { "baggage", span.baggage.get(*key).value_or("") }
+    };
+  // clang-format on
+
+  res.set_content(response_json.dump(), "application/json");
+}
+
+void RequestHandler::on_get_all_baggage(const httplib::Request& req,
+                                        httplib::Response& res) {
+  const auto request_json = nlohmann::json::parse(req.body);
+
+  auto span_id = utils::get_if_exists<uint64_t>(request_json, "span_id");
+  if (!span_id) {
+    VALIDATION_ERROR(res, "on_get_all_baggage: missing `span_id` field.");
+  }
+
+  auto key = utils::get_if_exists<std::string_view>(request_json, "key");
+  if (!key) {
+    VALIDATION_ERROR(res, "on_get_all_baggage: missing `key` field.");
+  }
+
+  auto span_it = active_spans_.find(*span_id);
+  if (span_it == active_spans_.cend()) {
+    const auto msg =
+        "on_get_all_baggage: span not found for id " + std::to_string(*span_id);
+    VALIDATION_ERROR(res, msg);
+  }
+
+  auto& span = span_it->second;
+
+  nlohmann::json baggages;
+  span.baggage.visit(
+      [&baggages](const std::string& key, const std::string& value) {
+        baggages.emplace_back(key, value);
+      });
+
+  // clang-format off
+    nlohmann::json response_json{
+      { "baggage",  baggages}
+    };
+  // clang-format on
+
+  res.set_content(response_json.dump(), "application/json");
+}
+
 #undef VALIDATION_ERROR

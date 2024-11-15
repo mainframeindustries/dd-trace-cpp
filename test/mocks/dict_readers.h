@@ -11,6 +11,7 @@ class MockDictReader : public DictReader {
   const std::unordered_map<std::string, std::string>* map_;
 
  public:
+  MockDictReader() = default;
   explicit MockDictReader(
       const std::unordered_map<std::string, std::string>& map)
       : map_(&map) {}

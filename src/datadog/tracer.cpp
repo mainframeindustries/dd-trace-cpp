@@ -172,9 +172,6 @@ Expected<Span> Tracer::extract_span(const DictReader& reader,
       case PropagationStyle::W3C:
         extract = &extract_w3c;
         break;
-      case PropagationStyle::BAGGAGE:
-        extract = &extract_baggage;
-        break;
       default:
         assert(style == PropagationStyle::NONE);
         extract = &extract_none;
